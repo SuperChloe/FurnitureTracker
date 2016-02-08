@@ -8,6 +8,7 @@
 
 #import "MasterViewController.h"
 #import "DetailViewController.h"
+#import "Room.h"
 
 @interface MasterViewController ()
 
@@ -40,9 +41,30 @@
     if (!self.objects) {
         self.objects = [[NSMutableArray alloc] init];
     }
-    [self.objects insertObject:[NSDate date] atIndex:0];
-    NSIndexPath *indexPath = [NSIndexPath indexPathForRow:0 inSection:0];
-    [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+    UIAlertController *alert = [UIAlertController alertControllerWithTitle:@"Add Room"
+                                                                   message:@"Name of the room to add:"
+                                                            preferredStyle:UIAlertControllerStyleAlert];
+    
+    [alert addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+       textField.placeholder = @"Room name";
+    }];
+    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
+                                                          handler:^(UIAlertAction * action) {
+                                                              UITextField *textField = alert.textFields.firstObject;
+                                                              Room *room = [[Room alloc] init];
+                                                              room.name = textField.text;
+                                                              RLMRealm *realm = [RLMRealm defaultRealm];
+                                                              [realm beginWriteTransaction];
+                                                              [realm addObject:room];
+                                                              [realm commitWriteTransaction];
+                                                              
+                                                              [self.objects insertObject:room atIndex:0];
+                                                              NSIndexPath *indexPath = [NSIndexPath indexPathForRow:([Room allObjects].count - 1) inSection:0];
+                                                              [self.tableView insertRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationAutomatic];
+                                                          }];
+    
+    [alert addAction:okAction];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 
 #pragma mark - Segues
@@ -65,14 +87,15 @@
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return self.objects.count;
+    RLMResults<Room *> *rooms = [Room allObjects];
+    return rooms.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:@"Cell" forIndexPath:indexPath];
-
-    NSDate *object = self.objects[indexPath.row];
-    cell.textLabel.text = [object description];
+    RLMResults<Room *> *rooms = [Room allObjects];
+    Room *room = rooms[indexPath.row];
+    cell.textLabel.text = room.name;
     return cell;
 }
 
